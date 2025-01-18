@@ -1,10 +1,3 @@
-Recommended Setup - Using the SDK with React
-This will provide you with a starter template for building a React application using the Dojo SDK.
-
-
-pnpx @dojoengine/create-dojo start
-
-
 
 Run the app
 To run the app locally, you need to have your world deployed. Follow those steps to make this work.
