@@ -11,7 +11,7 @@ In your contract folder
 
 2. sozo build
 3. sozo migrate
-4. source ~/.bashrc
+4. update terminal (source ~/.bashrc)
 
 
 Run torii
