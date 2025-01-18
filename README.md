@@ -2,7 +2,7 @@ Recommended Setup - Using the SDK with React
 This will provide you with a starter template for building a React application using the Dojo SDK.
 
 
-npx @dojoengine/create-dojo start -t example-vite-react-sdk
+pnpx @dojoengine/create-dojo start
 
 
 
@@ -28,4 +28,5 @@ Run torii
 
 In your client folder
 npm install vite --save-dev
+npm install
 npm run dev
