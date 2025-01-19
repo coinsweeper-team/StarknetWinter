@@ -1252,8 +1252,8 @@
   },
   "contracts": [
     {
-      "address": "0x2115aaa49adb5178478e04d8707ab7fe361aa9e140866b7365c3bb1f1d93334",
-      "class_hash": "0x6cbb5ab40ad7b48dff70edeacc4902a9eeae63a9e36456f9f908aedb904fbd2",
+      "address": "0x524bd386db89eb470ea4f253729a3e4d2656332328b555d1497a9a2b053f12b",
+      "class_hash": "0x5d6e68bcfa495e82732b5c2f66324b2b577a6470d887142fb32ec11b3050f93",
       "abi": [
         {
           "type": "impl",
@@ -1312,22 +1312,36 @@
         },
         {
           "type": "enum",
-          "name": "dojo_starter::models::Direction",
+          "name": "dojo_starter::models::GameDifficulty",
           "variants": [
             {
-              "name": "Left",
+              "name": "Beginner",
               "type": "()"
             },
             {
-              "name": "Right",
+              "name": "Intermediate",
               "type": "()"
             },
             {
-              "name": "Up",
+              "name": "Expert",
+              "type": "()"
+            }
+          ]
+        },
+        {
+          "type": "enum",
+          "name": "dojo_starter::models::GameResult",
+          "variants": [
+            {
+              "name": "Ongoing",
               "type": "()"
             },
             {
-              "name": "Down",
+              "name": "Lost",
+              "type": "()"
+            },
+            {
+              "name": "Won",
               "type": "()"
             }
           ]
@@ -1338,20 +1352,128 @@
           "items": [
             {
               "type": "function",
-              "name": "spawn",
-              "inputs": [],
+              "name": "setup_board_status",
+              "inputs": [
+                {
+                  "name": "difficulty",
+                  "type": "dojo_starter::models::GameDifficulty"
+                },
+                {
+                  "name": "board_id",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [
+                {
+                  "type": "core::integer::u32"
+                }
+              ],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "randomMineOrder",
+              "inputs": [
+                {
+                  "name": "num_cells",
+                  "type": "core::integer::u16"
+                },
+                {
+                  "name": "num_mines",
+                  "type": "core::integer::u16"
+                }
+              ],
+              "outputs": [
+                {
+                  "type": "core::array::Array::<core::integer::u16>"
+                }
+              ],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "addCurrency",
+              "inputs": [
+                {
+                  "name": "amount",
+                  "type": "core::integer::u32"
+                }
+              ],
               "outputs": [],
               "state_mutability": "external"
             },
             {
               "type": "function",
-              "name": "move",
+              "name": "spendCurrency",
               "inputs": [
                 {
-                  "name": "direction",
-                  "type": "dojo_starter::models::Direction"
+                  "name": "amount",
+                  "type": "core::integer::u32"
                 }
               ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "setup_cells",
+              "inputs": [
+                {
+                  "name": "board_id",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [
+                {
+                  "type": "core::integer::u32"
+                }
+              ],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "setup_game",
+              "inputs": [
+                {
+                  "name": "difficulty",
+                  "type": "core::integer::u8"
+                }
+              ],
+              "outputs": [
+                {
+                  "type": "core::integer::u32"
+                }
+              ],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "gameEnd",
+              "inputs": [
+                {
+                  "name": "board_id",
+                  "type": "core::integer::u32"
+                },
+                {
+                  "name": "result",
+                  "type": "dojo_starter::models::GameResult"
+                },
+                {
+                  "name": "time_elapsed",
+                  "type": "core::integer::u64"
+                },
+                {
+                  "name": "currency_amount",
+                  "type": "core::integer::u32"
+                }
+              ],
+              "outputs": [],
+              "state_mutability": "external"
+            },
+            {
+              "type": "function",
+              "name": "checkForAchievement",
+              "inputs": [],
               "outputs": [],
               "state_mutability": "external"
             }
@@ -1476,8 +1598,14 @@
       "tag": "dojo_starter-actions",
       "selector": "0x7a1c71029f2d0b38e3ac89b09931d08b6e48417e079c289ff19a8698d0cba33",
       "systems": [
-        "spawn",
-        "move",
+        "setup_board_status",
+        "randomMineOrder",
+        "addCurrency",
+        "spendCurrency",
+        "setup_cells",
+        "setup_game",
+        "gameEnd",
+        "checkForAchievement",
         "upgrade"
       ]
     }
@@ -1485,21 +1613,39 @@
   "models": [
     {
       "members": [],
-      "class_hash": "0x3f52c6cf17db224f4e7f88629adf7e907ff110baa0616c7e8ef17c5aecf1b1b",
-      "tag": "dojo_starter-DirectionsAvailable",
-      "selector": "0x77844f1facb51e60e546a9832d56c6bd04fa23be4fd5b57290caae5e9a3c1e4"
+      "class_hash": "0x45bb44bdcaa650497ab7ea39fbe822d969048960d58143b4a831f7f42670a8d",
+      "tag": "dojo_starter-Achievements",
+      "selector": "0x7fc66de1e8580ab3b384315445ab989e509c263b057e80408122f7c5cb64120"
     },
     {
       "members": [],
-      "class_hash": "0x5f79e21312b142fc289d3bd1e0f4c65ac3c4e532252c6fb1ad48b718d892dc",
-      "tag": "dojo_starter-Moves",
-      "selector": "0x2a29373f1af8348bd366a990eb3a342ef2cbe5e85160539eaca3441a673f468"
+      "class_hash": "0x2dfddd94bac8cbac638f3d85d4c246a91d4387a4b1af5a2f2b4d9c550e2735a",
+      "tag": "dojo_starter-BestRecords",
+      "selector": "0x49c665fa32fd8c63b2248dfbc1199313ecd32f2f3fab9a7bc9ebd108a7934fb"
     },
     {
       "members": [],
-      "class_hash": "0x2283c68ecba5c60bbbbd3b00659808a02244468e41a1d2cdba1312d65b83594",
-      "tag": "dojo_starter-Position",
-      "selector": "0x2ac8b4c190f7031b9fc44312e6b047a1dce0b3f2957c33a935ca7846a46dd5b"
+      "class_hash": "0x326b21cdda6728cc1cc301b0e32dd799f938df5d2f1bd2cdb168cc511ef3cfb",
+      "tag": "dojo_starter-BoardStatus",
+      "selector": "0x7f25b6ce78356dc75662950935514a7d8b8c646b2317a094177e4a9747d15a6"
+    },
+    {
+      "members": [],
+      "class_hash": "0x35c464d0a7add219e3f7f4407ef726ca6dcfa90283d375bc6158f7ba9b2e74f",
+      "tag": "dojo_starter-Boards",
+      "selector": "0x78e4eb768304e56dffd1018c901275a1a5c0c7aa5cbb6ffe6da3203c157c7b2"
+    },
+    {
+      "members": [],
+      "class_hash": "0x5051987ecd1344518d6ac3566b0efd5c06e677e33941c68dd743493edf17a27",
+      "tag": "dojo_starter-Cell",
+      "selector": "0x6ac42f434e992299d0e07457d8eef52da413f92167d16d9a6252daaffdfbe4"
+    },
+    {
+      "members": [],
+      "class_hash": "0x200e088b68da5337c7ff2a40d56a89f6ad4665f5ad86e423868f4d7895887ac",
+      "tag": "dojo_starter-Currency",
+      "selector": "0x1d76e6b17e75f65c55b312847a2303efa35f82301eab308c118464074ec3ebb"
     }
   ],
   "events": [

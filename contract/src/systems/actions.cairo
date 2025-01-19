@@ -17,7 +17,7 @@ trait IActions<T> {
     fn spendCurrency(ref self: T, amount: u32);
     fn setup_cells(ref self: T, board_id: u32) -> u32;
     // fn randomCurrencyAmount(ref self: T, seed_diff: u32) -> DiceTrait;
-    fn setup_game(ref self: T, difficulty: GameDifficulty) -> u32;
+    fn setup_game(ref self: T, difficulty: u8) -> u32;
     fn gameEnd(ref self: T, board_id: u32, result: GameResult, time_elapsed: u64, currency_amount: u32);
     fn checkForAchievement(ref self: T);
 }
@@ -166,12 +166,20 @@ pub mod actions {
             return ret_arr;
         }
 
-        fn setup_game(ref self: ContractState, difficulty: GameDifficulty) -> u32 {
+        fn setup_game(ref self: ContractState, difficulty: u8) -> u32 {
             let mut world = self.world_default();
             let mut boards: Boards = world.read_model(get_caller_address());
             
             let board_id: u32 = boards.last_board_id + 1;
-            assert!(board_id == self.setup_board_status(difficulty, board_id), "Error setting up board status");
+            
+            let mut enumDifficulty: GameDifficulty = GameDifficulty::Beginner;
+            if difficulty == 2 {
+                enumDifficulty = GameDifficulty::Intermediate;
+            } else if difficulty == 3 {
+                enumDifficulty = GameDifficulty::Expert;
+            }
+            
+            assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
             
             assert!(board_id == self.setup_cells(board_id), "Error setting up cells");
             
