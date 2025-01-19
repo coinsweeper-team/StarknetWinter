@@ -1,60 +1,71 @@
 import { DojoProvider, DojoCall } from "@dojoengine/core";
-import { Account, AccountInterface, CairoCustomEnum } from "starknet";
+import { Account, AccountInterface } from "starknet";
 
 export function setupWorld(provider: DojoProvider) {
-    const build_actions_move_calldata = (
-        direction: CairoCustomEnum
-    ): DojoCall => {
+    // Build calldata for `setup_game`
+    const build_setup_game_calldata = (difficulty: number): DojoCall => {
         return {
             contractName: "actions",
-            entrypoint: "move",
-            calldata: [direction],
+            entrypoint: "setup_game",
+            calldata: [difficulty],
         };
     };
 
-    const actions_move = async (
+    // Action for `setup_game`
+    const setup_game = async (
         snAccount: Account | AccountInterface,
-        direction: CairoCustomEnum
+        difficulty: number
     ) => {
         try {
             return await provider.execute(
                 snAccount,
-                build_actions_move_calldata(direction),
+                build_setup_game_calldata(difficulty),
                 "dojo_starter"
             );
         } catch (error) {
-            console.error(error);
+            console.error("Error executing setup_game:", error);
             throw error;
         }
     };
 
-    const build_actions_spawn_calldata = (): DojoCall => {
+    // Build calldata for `gameEnd`
+    const build_game_end_calldata = (
+        board_id: number,
+        result: number,
+        time_elapsed: number,
+        currency_amount: number
+    ): DojoCall => {
         return {
             contractName: "actions",
-            entrypoint: "spawn",
-            calldata: [],
+            entrypoint: "gameEnd",
+            calldata: [board_id, result, time_elapsed, currency_amount],
         };
     };
 
-    const actions_spawn = async (snAccount: Account | AccountInterface) => {
+    // Action for `gameEnd`
+    const game_end = async (
+        snAccount: Account | AccountInterface,
+        board_id: number,
+        result: number,
+        time_elapsed: number,
+        currency_amount: number
+    ) => {
         try {
             return await provider.execute(
                 snAccount,
-                build_actions_spawn_calldata(),
+                build_game_end_calldata(board_id, result, time_elapsed, currency_amount),
                 "dojo_starter"
             );
         } catch (error) {
-            console.error(error);
+            console.error("Error executing gameEnd:", error);
             throw error;
         }
     };
 
     return {
         actions: {
-            move: actions_move,
-            buildMoveCalldata: build_actions_move_calldata,
-            spawn: actions_spawn,
-            buildSpawnCalldata: build_actions_spawn_calldata,
+            setupGame: setup_game,
+            gameEnd: game_end,
         },
     };
 }

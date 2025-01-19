@@ -1,290 +1,230 @@
-import { useEffect, useMemo } from "react";
-import { ParsedEntity, QueryBuilder } from "@dojoengine/sdk";
-import { getEntityIdFromKeys } from "@dojoengine/utils";
-import { AccountInterface, addAddressPadding, CairoCustomEnum } from "starknet";
-
-import { ModelsMapping, SchemaType } from "./typescript/models.gen.ts";
-import { useSystemCalls } from "./useSystemCalls.ts";
+import { useState, useEffect, useCallback } from "react";
+import { QueryBuilder } from "@dojoengine/sdk";
 import { useAccount } from "@starknet-react/core";
-import { WalletAccount } from "./wallet-account.tsx";
-import { HistoricalEvents } from "./historical-events.tsx";
 import { useDojoSDK, useModel } from "@dojoengine/sdk/react";
+import { WalletAccount } from "./wallet-account";
+import { ModelsMapping } from "./typescript/models.gen";
 
-/**
- * Main application component that provides game functionality and UI.
- * Handles entity subscriptions, state management, and user interactions.
- *
- * @param props.sdk - The Dojo SDK instance configured with the game schema
- */
-function App() {
-    const { useDojoStore, client, sdk } = useDojoSDK();
-    const { account } = useAccount();
-    const state = useDojoStore((state) => state);
-    const entities = useDojoStore((state) => state.entities);
+const CELL_SIZE = 20;
+const GRID_SIZE = 401;
+const TOTAL_BEES = 50;
 
-    const { spawn } = useSystemCalls();
-
-    const entityId = useMemo(() => {
-        if (account) {
-            return getEntityIdFromKeys([BigInt(account.address)]);
-        }
-        return BigInt(0);
-    }, [account]);
-
-    useEffect(() => {
-        let unsubscribe: (() => void) | undefined;
-
-        const subscribe = async (account: AccountInterface) => {
-            const subscription = await sdk.subscribeEntityQuery({
-                query: new QueryBuilder<SchemaType>()
-                    .namespace("dojo_starter", (n) =>
-                        n
-                            .entity("Moves", (e) =>
-                                e.eq(
-                                    "player",
-                                    addAddressPadding(account.address)
-                                )
-                            )
-                            .entity("Position", (e) =>
-                                e.is(
-                                    "player",
-                                    addAddressPadding(account.address)
-                                )
-                            )
-                    )
-                    .build(),
-                callback: ({ error, data }) => {
-                    if (error) {
-                        console.error("Error setting up entity sync:", error);
-                    } else if (
-                        data &&
-                        (data[0] as ParsedEntity<SchemaType>).entityId !== "0x0"
-                    ) {
-                        state.updateEntity(data[0] as ParsedEntity<SchemaType>);
-                    }
-                },
-            });
-
-            unsubscribe = () => subscription.cancel();
-        };
-
-        if (account) {
-            subscribe(account);
-        }
-
-        return () => {
-            if (unsubscribe) {
-                unsubscribe();
-            }
-        };
-    }, [sdk, account]);
-
-    useEffect(() => {
-        const fetchEntities = async (account: AccountInterface) => {
-            try {
-                await sdk.getEntities({
-                    query: new QueryBuilder<SchemaType>()
-                        .namespace("dojo_starter", (n) =>
-                            n.entity("Moves", (e) =>
-                                e.eq(
-                                    "player",
-                                    addAddressPadding(account.address)
-                                )
-                            )
-                        )
-                        .build(),
-                    callback: (resp) => {
-                        if (resp.error) {
-                            console.error(
-                                "resp.error.message:",
-                                resp.error.message
-                            );
-                            return;
-                        }
-                        if (resp.data) {
-                            state.setEntities(
-                                resp.data as ParsedEntity<SchemaType>[]
-                            );
-                        }
-                    },
-                });
-            } catch (error) {
-                console.error("Error querying entities:", error);
-            }
-        };
-
-        if (account) {
-            fetchEntities(account);
-        }
-    }, [sdk, account]);
-
-    const moves = useModel(entityId as string, ModelsMapping.Moves);
-    const position = useModel(entityId as string, ModelsMapping.Position);
-
-    return (
-        <div className="bg-black min-h-screen w-full p-4 sm:p-8">
-            <div className="max-w-7xl mx-auto">
-                <WalletAccount />
-
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
-                    <div className="bg-gray-700 p-4 rounded-lg shadow-inner">
-                        <div className="grid grid-cols-3 gap-2 w-full h-48">
-                            <div className="col-start-2">
-                                <button
-                                    className="h-12 w-12 bg-gray-600 rounded-full shadow-md active:shadow-inner active:bg-gray-500 focus:outline-none text-2xl font-bold text-gray-200"
-                                    onClick={async () => await spawn()}
-                                >
-                                    +
-                                </button>
-                            </div>
-                            <div className="col-span-3 text-center text-base text-white">
-                                Moves Left:{" "}
-                                {moves ? `${moves.remaining}` : "Need to Spawn"}
-                            </div>
-                            <div className="col-span-3 text-center text-base text-white">
-                                {position
-                                    ? `x: ${position?.vec?.x}, y: ${position?.vec?.y}`
-                                    : "Need to Spawn"}
-                            </div>
-                            <div className="col-span-3 text-center text-base text-white">
-                                {moves && moves.last_direction.isSome()
-                                    ? moves.last_direction.unwrap()
-                                    : ""}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="bg-gray-700 p-4 rounded-lg shadow-inner">
-                        <div className="grid grid-cols-3 gap-2 w-full h-48">
-                            {[
-                                {
-                                    direction: new CairoCustomEnum({
-                                        Up: "()",
-                                    }),
-                                    label: "↑",
-                                    col: "col-start-2",
-                                },
-                                {
-                                    direction: new CairoCustomEnum({
-                                        Left: "()",
-                                    }),
-                                    label: "←",
-                                    col: "col-start-1",
-                                },
-                                {
-                                    direction: new CairoCustomEnum({
-                                        Right: "()",
-                                    }),
-                                    label: "→",
-                                    col: "col-start-3",
-                                },
-                                {
-                                    direction: new CairoCustomEnum({
-                                        Down: "()",
-                                    }),
-                                    label: "↓",
-                                    col: "col-start-2",
-                                },
-                            ].map(({ direction, label, col }, idx) => (
-                                <button
-                                    className={`${col} h-12 w-12 bg-gray-600 rounded-full shadow-md active:shadow-inner active:bg-gray-500 focus:outline-none text-2xl font-bold text-gray-200`}
-                                    key={idx}
-                                    onClick={async () => {
-                                        await client.actions.move(
-                                            account!,
-                                            direction
-                                        );
-                                    }}
-                                >
-                                    {label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                <div className="mt-8 overflow-x-auto">
-                    <table className="w-full border-collapse border border-gray-700">
-                        <thead>
-                            <tr className="bg-gray-800 text-white">
-                                <th className="border border-gray-700 p-2">
-                                    Entity ID
-                                </th>
-                                <th className="border border-gray-700 p-2">
-                                    Player
-                                </th>
-                                <th className="border border-gray-700 p-2">
-                                    Position X
-                                </th>
-                                <th className="border border-gray-700 p-2">
-                                    Position Y
-                                </th>
-                                <th className="border border-gray-700 p-2">
-                                    Can Move
-                                </th>
-                                <th className="border border-gray-700 p-2">
-                                    Last Direction
-                                </th>
-                                <th className="border border-gray-700 p-2">
-                                    Remaining Moves
-                                </th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {Object.entries(entities).map(
-                                ([entityId, entity]) => {
-                                    const position =
-                                        entity.models.dojo_starter.Position;
-                                    const moves =
-                                        entity.models.dojo_starter.Moves;
-                                    const lastDirection =
-                                        moves?.last_direction?.isSome()
-                                            ? moves.last_direction?.unwrap()
-                                            : "N/A";
-
-                                    return (
-                                        <tr
-                                            key={entityId}
-                                            className="text-gray-300"
-                                        >
-                                            <td className="border border-gray-700 p-2">
-                                                {entityId}
-                                            </td>
-                                            <td className="border border-gray-700 p-2">
-                                                {position?.player ?? "N/A"}
-                                            </td>
-                                            <td className="border border-gray-700 p-2">
-                                                {position?.vec?.x.toString() ??
-                                                    "N/A"}
-                                            </td>
-                                            <td className="border border-gray-700 p-2">
-                                                {position?.vec?.y.toString() ??
-                                                    "N/A"}
-                                            </td>
-                                            <td className="border border-gray-700 p-2">
-                                                {moves?.can_move?.toString() ??
-                                                    "N/A"}
-                                            </td>
-                                            <td className="border border-gray-700 p-2">
-                                                {lastDirection}
-                                            </td>
-                                            <td className="border border-gray-700 p-2">
-                                                {moves?.remaining?.toString() ??
-                                                    "N/A"}
-                                            </td>
-                                        </tr>
-                                    );
-                                }
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-
-                {/* // Here sdk is passed as props but this can be done via contexts */}
-                <HistoricalEvents />
-            </div>
-        </div>
-    );
+interface CellType {
+  x: number;
+  y: number;
+  isBee: boolean;
+  isRevealed: boolean;
+  neighborCount: number;
 }
 
+const App = () => {
+  const { useDojoStore, sdk } = useDojoSDK();
+  const { account } = useAccount();
+  const state = useDojoStore((state) => state);
+
+  const [grid, setGrid] = useState<CellType[][]>([]);
+  const [gameOver, setGameOver] = useState(false);
+  const [gameStarted, setGameStarted] = useState(false);
+  const [difficulty, setDifficulty] = useState<number>(1); // 1: Beginner, 2: Intermediate, 3: Expert
+  const [boardId, setBoardId] = useState<number | null>(null);
+
+  // Models for the game
+  const boardStatus = useModel(
+    boardId ? BigInt(boardId) : BigInt(0),
+    ModelsMapping.BoardStatus
+  );
+  const currency = useModel(
+    account?.address ? BigInt(account.address) : BigInt(0),
+    ModelsMapping.Currency
+  );
+  const achievements = useModel(
+    account?.address ? BigInt(account.address) : BigInt(0),
+    ModelsMapping.Achievements
+  );
+
+  const cols = Math.floor(GRID_SIZE / CELL_SIZE);
+  const rows = Math.floor(GRID_SIZE / CELL_SIZE);
+
+  const createEmptyGrid = useCallback(() => {
+    const newGrid: CellType[][] = [];
+    for (let i = 0; i < cols; i++) {
+      newGrid[i] = [];
+      for (let j = 0; j < rows; j++) {
+        newGrid[i][j] = {
+          x: i,
+          y: j,
+          isBee: false,
+          isRevealed: false,
+          neighborCount: 0,
+        };
+      }
+    }
+    return newGrid;
+  }, [cols, rows]);
+
+  const placeBees = (currentGrid: CellType[][]): CellType[][] => {
+    const newGrid = JSON.parse(JSON.stringify(currentGrid));
+    let options: [number, number][] = [];
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        options.push([i, j]);
+      }
+    }
+    for (let n = 0; n < TOTAL_BEES; n++) {
+      const index = Math.floor(Math.random() * options.length);
+      const [i, j] = options[index];
+      options.splice(index, 1);
+      newGrid[i][j].isBee = true;
+    }
+    return newGrid;
+  };
+
+  const countNeighborBees = (currentGrid: CellType[][]): CellType[][] => {
+    const newGrid = JSON.parse(JSON.stringify(currentGrid));
+    for (let i = 0; i < cols; i++) {
+      for (let j = 0; j < rows; j++) {
+        if (!newGrid[i][j].isBee) {
+          let total = 0;
+          for (let xoff = -1; xoff <= 1; xoff++) {
+            for (let yoff = -1; yoff <= 1; yoff++) {
+              const ni = i + xoff;
+              const nj = j + yoff;
+              if (ni >= 0 && ni < cols && nj >= 0 && nj < rows) {
+                if (newGrid[ni][nj].isBee) total++;
+              }
+            }
+          }
+          newGrid[i][j].neighborCount = total;
+        }
+      }
+    }
+    return newGrid;
+  };
+
+  const startGame = () => {
+    let newGrid = createEmptyGrid();
+    newGrid = placeBees(newGrid);
+    newGrid = countNeighborBees(newGrid);
+    setGrid(newGrid);
+    setGameOver(false);
+    setGameStarted(true);
+  };
+
+  const handleCellClick = (x: number, y: number) => {
+    if (gameOver) return;
+
+    const newGrid = JSON.parse(JSON.stringify(grid));
+    const cell = newGrid[x][y];
+
+    if (cell.isBee) {
+      setGameOver(true);
+      for (let i = 0; i < cols; i++) {
+        for (let j = 0; j < rows; j++) {
+          newGrid[i][j].isRevealed = true;
+        }
+      }
+    } else {
+      const floodFill = (x: number, y: number) => {
+        if (x < 0 || x >= cols || y < 0 || y >= rows) return;
+        if (newGrid[x][y].isRevealed) return;
+
+        newGrid[x][y].isRevealed = true;
+
+        if (newGrid[x][y].neighborCount === 0) {
+          for (let i = -1; i <= 1; i++) {
+            for (let j = -1; j <= 1; j++) {
+              floodFill(x + i, y + j);
+            }
+          }
+        }
+      };
+
+      floodFill(x, y);
+    }
+
+    setGrid(newGrid);
+  };
+
+  const Cell = ({ cell, onClick }: { cell: CellType; onClick: () => void }) => {
+    const getCellContent = () => {
+      if (!cell.isRevealed) return "";
+      if (cell.isBee) return "💣";
+      return cell.neighborCount || "";
+    };
+
+    const getCellColor = () => {
+      if (!cell.isRevealed) return "bg-gray-300";
+      if (cell.isBee) return "bg-red-500";
+      return "bg-gray-100";
+    };
+
+    return (
+      <button
+        className={`w-5 h-5 border border-gray-400 flex items-center justify-center text-sm font-bold ${getCellColor()}`}
+        onClick={onClick}
+        disabled={!gameStarted}
+      >
+        {getCellContent()}
+      </button>
+    );
+  };
+
+  return (
+    <div className="bg-black min-h-screen w-full p-4 sm:p-8">
+      <div className="max-w-7xl mx-auto">
+        <WalletAccount />
+
+        {/* Game Controls */}
+        <div className="mt-8 flex flex-col items-center gap-4">
+          {!gameStarted && (
+            <button
+              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+              onClick={startGame}
+            >
+              Start New Minesweeper Game
+            </button>
+          )}
+
+          {/* Minesweeper Grid */}
+          <div className="flex flex-col">
+            {Array.from({ length: rows }, (_, y) => (
+              <div key={y} className="flex">
+                {Array.from({ length: cols }, (_, x) => (
+                  <Cell
+                    key={`${x}-${y}`}
+                    cell={
+                      grid[x]?.[y] || {
+                        x,
+                        y,
+                        isBee: false,
+                        isRevealed: false,
+                        neighborCount: 0,
+                      }
+                    }
+                    onClick={() => handleCellClick(x, y)}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
+
+          {/* Game Over Message */}
+          {gameOver && (
+            <div className="flex gap-4 items-center">
+              <div className="text-red-500 font-bold">Game Over!</div>
+              <button
+                className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+                onClick={startGame}
+              >
+                Restart Game
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default App;
+
