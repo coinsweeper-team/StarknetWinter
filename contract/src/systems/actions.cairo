@@ -18,7 +18,7 @@ trait IActions<T> {
     fn setup_cells(ref self: T, board_id: u32) -> u32;
     // fn randomCurrencyAmount(ref self: T, seed_diff: u32) -> DiceTrait;
     fn setup_game(ref self: T, difficulty: u8) -> u32;
-    fn gameEnd(ref self: T, board_id: u32, result: GameResult, time_elapsed: u64, currency_amount: u32);
+    fn gameEnd(ref self: T, board_id: u32, result: u8, time_elapsed: u64, currency_amount: u32);
     fn checkForAchievement(ref self: T);
 }
 
@@ -29,7 +29,7 @@ pub mod actions {
 
     use super::{IActions, Direction, GameDifficulty, GameResult};
     use starknet::{ContractAddress, get_caller_address};
-    use dojo_starter::models::{Vec2, Cell, Boards, BoardStatus, Currency, Achievements, BestRecords};
+    use dojo_starter::models::{Cell, Boards, BoardStatus, Currency, Achievements, BestRecords};
 
     use dojo::model::{ModelStorage, ModelValueStorage};
     use dojo::event::EventStorage;
@@ -41,18 +41,18 @@ pub mod actions {
     // use cartridge_vrf::IVrfProviderDispatcherTrait;
     // use cartridge_vrf::Source;
 
-    #[derive(Copy, Drop, Serde)]
-    #[dojo::event]
-    pub struct Moved {
-        #[key]
-        pub player: ContractAddress,
-        pub direction: Direction,
-    }
+    // #[derive(Copy, Drop, Serde)]
+    // #[dojo::event]
+    // pub struct Moved {
+    //     #[key]
+    //     pub player: ContractAddress,
+    //     pub direction: Direction,
+    // }
 
     #[abi(embed_v0)]
     impl ActionsImpl of IActions<ContractState> {
 
-        fn gameEnd(ref self: ContractState, board_id: u32, result: GameResult, time_elapsed: u64, currency_amount: u32) {
+        fn gameEnd(ref self: ContractState, board_id: u32, result: u8, time_elapsed: u64, currency_amount: u32) {
             let mut world = self.world_default();
             let player = get_caller_address();
             let mut board: BoardStatus = world.read_model((player, board_id));
@@ -62,33 +62,31 @@ pub mod actions {
             board.num_closed = 0;
             world.write_model(@board);
 
-            match result {
-                GameResult::Won => {
-                    let mut boards: Boards = world.read_model(player);
-                    boards.won_total += 1;
-                    world.write_model(@boards);
-                    self.addCurrency(currency_amount);
-                    self.checkForAchievement();
+            // 1 - ongoing, 2 - lost, 3 - won
+            if result.into() == 3 {
+                let mut boards: Boards = world.read_model(player);
+                boards.won_total += 1;
+                world.write_model(@boards);
+                self.addCurrency(currency_amount);
+                self.checkForAchievement();
 
-                    let mut best_records: BestRecords = world.read_model(player);
-                    if board.difficulty == 1 {
-                        if best_records.beginner_best_time == 0 || time_elapsed < best_records.beginner_best_time {
-                            best_records.beginner_best_time = time_elapsed;
-                        }
-                    } else if board.difficulty == 2 {
-                        if best_records.intermediate_best_time == 0 || time_elapsed < best_records.intermediate_best_time {
-                            best_records.intermediate_best_time = time_elapsed;
-                        }
-                    } else if board.difficulty == 3 {
-                        if best_records.expert_best_time == 0 || time_elapsed < best_records.expert_best_time {
-                            best_records.expert_best_time = time_elapsed;
-                        }
+                let mut best_records: BestRecords = world.read_model(player);
+                if board.difficulty == 1 {
+                    if best_records.beginner_best_time == 0 || time_elapsed < best_records.beginner_best_time {
+                        best_records.beginner_best_time = time_elapsed;
                     }
-                    world.write_model(@best_records);
-                },
-                GameResult::Lost => {},
-                GameResult::Ongoing => {},
-            }
+                } else if board.difficulty == 2 {
+                    if best_records.intermediate_best_time == 0 || time_elapsed < best_records.intermediate_best_time {
+                        best_records.intermediate_best_time = time_elapsed;
+                    }
+                } else if board.difficulty == 3 {
+                    if best_records.expert_best_time == 0 || time_elapsed < best_records.expert_best_time {
+                        best_records.expert_best_time = time_elapsed;
+                    }
+                }
+                world.write_model(@best_records);
+            };
+            // if ongoing or lost, do nothing
         }
 
         // inner function - Do not call from Frontend
@@ -172,14 +170,21 @@ pub mod actions {
             
             let board_id: u32 = boards.last_board_id + 1;
             
-            let mut enumDifficulty: GameDifficulty = GameDifficulty::Beginner;
-            if difficulty == 2 {
-                enumDifficulty = GameDifficulty::Intermediate;
-            } else if difficulty == 3 {
-                enumDifficulty = GameDifficulty::Expert;
+            if difficulty.into() == 1 {
+                let enumDifficulty: GameDifficulty = GameDifficulty::Beginner;
+                print!("SSAA");
+                assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
+            } else if difficulty.into() == 2 {
+                print!("SSAA2");
+                let enumDifficulty: GameDifficulty = GameDifficulty::Intermediate;
+                assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
+            } else if difficulty.into() == 3 {
+                print!("SSAA3");
+                let enumDifficulty: GameDifficulty = GameDifficulty::Expert;
+                assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
             }
-            
-            assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
+            print!("SHYQTY");
+            // assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
             
             assert!(board_id == self.setup_cells(board_id), "Error setting up cells");
             

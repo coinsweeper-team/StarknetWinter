@@ -1253,7 +1253,7 @@
   "contracts": [
     {
       "address": "0x524bd386db89eb470ea4f253729a3e4d2656332328b555d1497a9a2b053f12b",
-      "class_hash": "0x5d6e68bcfa495e82732b5c2f66324b2b577a6470d887142fb32ec11b3050f93",
+      "class_hash": "0x4f22e44edec377fab984985b45e234ec554132c5c96b75bd7be86e78712dcd1",
       "abi": [
         {
           "type": "impl",
@@ -1324,24 +1324,6 @@
             },
             {
               "name": "Expert",
-              "type": "()"
-            }
-          ]
-        },
-        {
-          "type": "enum",
-          "name": "dojo_starter::models::GameResult",
-          "variants": [
-            {
-              "name": "Ongoing",
-              "type": "()"
-            },
-            {
-              "name": "Lost",
-              "type": "()"
-            },
-            {
-              "name": "Won",
               "type": "()"
             }
           ]
@@ -1456,7 +1438,7 @@
                 },
                 {
                   "name": "result",
-                  "type": "dojo_starter::models::GameResult"
+                  "type": "core::integer::u8"
                 },
                 {
                   "name": "time_elapsed",

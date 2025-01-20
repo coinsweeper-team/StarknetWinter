@@ -85,9 +85,9 @@ pub struct BoardStatus {
 
 #[derive(Serde, Copy, Drop, Introspect, PartialEq, Debug)]
 enum GameDifficulty {
-    Beginner: (),
-    Intermediate: (),
-    Expert: (),
+    Beginner,
+    Intermediate,
+    Expert,
 }
 
 
@@ -98,14 +98,6 @@ pub enum Direction {
     Up,
     Down,
 }
-
-
-#[derive(Copy, Drop, Serde, IntrospectPacked, Debug)]
-pub struct Vec2 {
-    pub x: u32,
-    pub y: u32
-}
-
 
 impl GameDifficultyIntoFelt252 of Into<GameDifficulty, u8> {
     fn into(self: GameDifficulty) -> u8 {
@@ -120,9 +112,9 @@ impl GameDifficultyIntoFelt252 of Into<GameDifficulty, u8> {
 impl GameResultIntoFelt252 of Into<GameResult, u8> {
     fn into(self: GameResult) -> u8 {
         match self {
-            GameResult::Ongoing => 0,
-            GameResult::Lost => 1,
-            GameResult::Won => 2,
+            GameResult::Ongoing => 1,
+            GameResult::Lost => 2,
+            GameResult::Won => 3,
         }
     }
 }
@@ -147,32 +139,18 @@ impl OptionDirectionIntoFelt252 of Into<Option<Direction>, felt252> {
     }
 }
 
-#[generate_trait]
-impl Vec2Impl of Vec2Trait {
-    fn is_zero(self: Vec2) -> bool {
-        if self.x - self.y == 0 {
-            return true;
-        }
-        false
-    }
+// #[cfg(test)]
+// mod tests {
+//     use super::{Position, Vec2, Vec2Trait};
 
-    fn is_equal(self: Vec2, b: Vec2) -> bool {
-        self.x == b.x && self.y == b.y
-    }
-}
+//     #[test]
+//     fn test_vec_is_zero() {
+//         assert(Vec2Trait::is_zero(Vec2 { x: 0, y: 0 }), 'not zero');
+//     }
 
-#[cfg(test)]
-mod tests {
-    use super::{Position, Vec2, Vec2Trait};
-
-    #[test]
-    fn test_vec_is_zero() {
-        assert(Vec2Trait::is_zero(Vec2 { x: 0, y: 0 }), 'not zero');
-    }
-
-    #[test]
-    fn test_vec_is_equal() {
-        let position = Vec2 { x: 420, y: 0 };
-        assert(position.is_equal(Vec2 { x: 420, y: 0 }), 'not equal');
-    }
-}
+//     #[test]
+//     fn test_vec_is_equal() {
+//         let position = Vec2 { x: 420, y: 0 };
+//         assert(position.is_equal(Vec2 { x: 420, y: 0 }), 'not equal');
+//     }
+// }
