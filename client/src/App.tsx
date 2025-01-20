@@ -1,9 +1,9 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback } from "react";
 import { WalletAccount } from "./wallet-account";
+import { useAccount } from "@starknet-react/core";
 
 const CELL_SIZE = 20;
 const GRID_SIZE = 401;
-const TOTAL_BEES = 50;
 
 interface CellType {
   x: number;
@@ -15,16 +15,18 @@ interface CellType {
 }
 
 const App = () => {
+  const { account } = useAccount(); // Get the connected account
   const [grid, setGrid] = useState<CellType[][]>([]);
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [coinsCollected, setCoinsCollected] = useState(0);
+  const [boardId, setBoardId] = useState<number | null>(null);
 
   const cols = Math.floor(GRID_SIZE / CELL_SIZE);
   const rows = Math.floor(GRID_SIZE / CELL_SIZE);
 
-  const clickSound = new Audio('/sounds/click.mp3');
-  const gameOverSound = new Audio('/sounds/gameover.mp3');
+  const clickSound = new Audio("/sounds/click.mp3");
+  const gameOverSound = new Audio("/sounds/gameover.mp3");
 
   const createEmptyGrid = useCallback(() => {
     const newGrid: CellType[][] = [];
@@ -44,153 +46,118 @@ const App = () => {
     return newGrid;
   }, [cols, rows]);
 
-  const placeBees = (currentGrid: CellType[][]): CellType[][] => {
-    const newGrid = JSON.parse(JSON.stringify(currentGrid));
-    let options: [number, number][] = [];
-
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        options.push([i, j]);
-      }
+  const startGame = async () => {
+    if (!account) {
+      console.error("No StarkNet account connected.");
+      return;
     }
 
-    for (let n = 0; n < TOTAL_BEES; n++) {
-      const index = Math.floor(Math.random() * options.length);
-      const [i, j] = options[index];
-      options.splice(index, 1);
-      newGrid[i][j].isBee = true;
-    }
+    try {
+      const difficulty = 1; // Beginner difficulty
+      const response = await account.execute({
+        contractAddress: "0x076d923e13e0c61c402978ef72d0b7134a93dadfe5c6006dcaf8d4778c51597d",
+        entrypoint: "setup_game",
+        calldata: [difficulty],
+      });
 
-    return newGrid;
+      console.log("Transaction Hash:", response.transaction_hash);
+
+      setBoardId(Date.now()); // Mock boardId
+      let newGrid = createEmptyGrid();
+      setGrid(newGrid);
+
+      setGameStarted(true);
+      setGameOver(false);
+      setCoinsCollected(0);
+    } catch (error) {
+      console.error("Failed to start new game:", error);
+    }
   };
 
-  const placeCoins = (currentGrid: CellType[][]): CellType[][] => {
-    const newGrid = JSON.parse(JSON.stringify(currentGrid));
-    let options: [number, number][] = [];
-
-    // Collect all cells that are not bees
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        if (!newGrid[i][j].isBee) {
-          options.push([i, j]);
-        }
-      }
-    }
-
-    const numCoins = 5; // Fixed number of coins
-    console.log(`Placing ${numCoins} coins in this game`);
-
-    // Place exactly 5 coins
-    for (let n = 0; n < numCoins; n++) {
-      if (options.length === 0) break;
-      const index = Math.floor(Math.random() * options.length);
-      const [i, j] = options[index];
-      options.splice(index, 1);
-      newGrid[i][j].isCoin = true;
-    }
-
-    return newGrid;
-  };
-
-  const countNeighborBees = (currentGrid: CellType[][]): CellType[][] => {
-    const newGrid = JSON.parse(JSON.stringify(currentGrid));
-
-    for (let i = 0; i < cols; i++) {
-      for (let j = 0; j < rows; j++) {
-        if (!newGrid[i][j].isBee) {
-          let total = 0;
-          for (let xoff = -1; xoff <= 1; xoff++) {
-            for (let yoff = -1; yoff <= 1; yoff++) {
-              const ni = i + xoff;
-              const nj = j + yoff;
-              if (ni >= 0 && ni < cols && nj >= 0 && nj < rows) {
-                if (newGrid[ni][nj].isBee) total++;
-              }
-            }
-          }
-          newGrid[i][j].neighborCount = total;
-        }
-      }
-    }
-
-    return newGrid;
-  };
-
-  const startGame = () => {
-    let newGrid = createEmptyGrid();
-    newGrid = placeBees(newGrid);
-    newGrid = placeCoins(newGrid);
-    newGrid = countNeighborBees(newGrid);
-    setGrid(newGrid);
-    setGameOver(false);
-    setGameStarted(true);
-    setCoinsCollected(0);
-  };
-
-  const handleCellClick = (x: number, y: number) => {
-    if (gameOver) return;
-
-    clickSound.play();
+  const handleCellClick = async (x: number, y: number) => {
+    if (!account || gameOver || boardId === null) return;
 
     const newGrid = JSON.parse(JSON.stringify(grid));
     const cell = newGrid[x][y];
 
-    if (cell.isBee) {
-      setGameOver(true);
-      gameOverSound.play();
-      for (let i = 0; i < cols; i++) {
-        for (let j = 0; j < rows; j++) {
-          newGrid[i][j].isRevealed = true;
+    if (cell.isRevealed) return;
+
+    clickSound.play();
+
+    try {
+      if (cell.isBee) {
+        setGameOver(true);
+        gameOverSound.play();
+
+        await account.execute({
+          contractAddress: "0x076d923e13e0c61c402978ef72d0b7134a93dadfe5c6006dcaf8d4778c51597d",
+          entrypoint: "gameEnd",
+          calldata: [boardId, 2, 0, 0], // Result: Lost
+        });
+
+        console.log("Game ended with a loss!");
+
+        for (let i = 0; i < cols; i++) {
+          for (let j = 0; j < rows; j++) {
+            newGrid[i][j].isRevealed = true;
+          }
         }
-      }
-    } else {
-      let coinsCollectedInThisMove = 0;
+      } else {
+        let coinsCollectedInThisMove = 0;
 
-      const floodFill = (x: number, y: number) => {
-        if (x < 0 || x >= cols || y < 0 || y >= rows) return;
-        if (newGrid[x][y].isRevealed) return;
+        const floodFill = (x: number, y: number) => {
+          if (x < 0 || x >= cols || y < 0 || y >= rows) return;
+          if (newGrid[x][y].isRevealed) return;
 
-        const cell = newGrid[x][y];
-        cell.isRevealed = true;
+          const cell = newGrid[x][y];
+          cell.isRevealed = true;
 
-        if (cell.isCoin) {
-          coinsCollectedInThisMove++;
-          // Just count the coin, no need to remove it
-        }
+          if (cell.isCoin) {
+            coinsCollectedInThisMove++;
+          }
 
-        if (cell.neighborCount === 0) {
-          for (let i = -1; i <= 1; i++) {
-            for (let j = -1; j <= 1; j++) {
-              if (i !== 0 || j !== 0) {
+          if (cell.neighborCount === 0) {
+            for (let i = -1; i <= 1; i++) {
+              for (let j = -1; j <= 1; j++) {
                 floodFill(x + i, y + j);
               }
             }
           }
+        };
+
+        floodFill(x, y);
+
+        if (coinsCollectedInThisMove > 0) {
+          setCoinsCollected((prev) => prev + coinsCollectedInThisMove);
+
+          await account.execute({
+            contractAddress: "0x076d923e13e0c61c402978ef72d0b7134a93dadfe5c6006dcaf8d4778c51597d",
+            entrypoint: "addCurrency",
+            calldata: [coinsCollectedInThisMove],
+          });
+
+          console.log(`Added ${coinsCollectedInThisMove} coins to account!`);
         }
-      };
-
-      floodFill(x, y);
-
-      if (coinsCollectedInThisMove > 0) {
-        setCoinsCollected((prev) => prev + coinsCollectedInThisMove);
       }
-    }
 
-    setGrid(newGrid);
+      setGrid(newGrid);
+    } catch (error) {
+      console.error("Failed to handle cell click:", error);
+    }
   };
 
   const Cell = ({ cell, onClick }: { cell: CellType; onClick: () => void }) => {
     const getCellContent = () => {
-      if (!cell.isRevealed) return '';
-      if (cell.isBee) return '💣';
-      if (cell.isCoin) return   <img src="/src/coin/coin.svg" alt="Coin" />;
-      return cell.neighborCount || '';
+      if (!cell.isRevealed) return "";
+      if (cell.isBee) return "💣";
+      if (cell.isCoin) return "💰";
+      return cell.neighborCount || "";
     };
 
     const getCellColor = () => {
-      if (!cell.isRevealed) return 'bg-gray-300';
-      if (cell.isBee) return 'bg-red-500';
-      return 'bg-gray-100';
+      if (!cell.isRevealed) return "bg-gray-300";
+      if (cell.isBee) return "bg-red-500";
+      return "bg-gray-100";
     };
 
     return (
@@ -232,7 +199,16 @@ const App = () => {
                 {Array.from({ length: cols }, (_, x) => (
                   <Cell
                     key={`${x}-${y}`}
-                    cell={grid[x]?.[y] || { x, y, isBee: false, isCoin: false, isRevealed: false, neighborCount: 0 }}
+                    cell={
+                      grid[x]?.[y] || {
+                        x,
+                        y,
+                        isBee: false,
+                        isCoin: false,
+                        isRevealed: false,
+                        neighborCount: 0,
+                      }
+                    }
                     onClick={() => handleCellClick(x, y)}
                   />
                 ))}
