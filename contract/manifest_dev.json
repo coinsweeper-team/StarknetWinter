@@ -1252,8 +1252,8 @@
   },
   "contracts": [
     {
-      "address": "0x524bd386db89eb470ea4f253729a3e4d2656332328b555d1497a9a2b053f12b",
-      "class_hash": "0x4f22e44edec377fab984985b45e234ec554132c5c96b75bd7be86e78712dcd1",
+      "address": "0x5f999d2b9e44cf67bb5bc8260c1f0449d6f67d823d3196836383a15cd736edd",
+      "class_hash": "0x667456b0dc02afa95a018b0bb694428290382bf81d3660258c1af2ddea04f22",
       "abi": [
         {
           "type": "impl",
@@ -1630,12 +1630,5 @@
       "selector": "0x1d76e6b17e75f65c55b312847a2303efa35f82301eab308c118464074ec3ebb"
     }
   ],
-  "events": [
-    {
-      "members": [],
-      "class_hash": "0x3dca5564f84050b20e66a2e5e7619201502d241b223ea73cfc05f29e6e20ea1",
-      "tag": "dojo_starter-Moved",
-      "selector": "0x504403e5c02b6442527721fc464d9ea5fc8f1ee600ab5ccd5c0845d36fd45f1"
-    }
-  ]
+  "events": []
 }

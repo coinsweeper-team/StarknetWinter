@@ -207,14 +207,18 @@ pub mod actions {
                 GameDifficulty::Expert => (30_u8, 16_u8, 99_u16),
             }; 
 
+            let w: u16 = width.into();
+            let h: u16 = height.into();
+            let wh: u16 = w * h;
+            
             let board = BoardStatus {
                 player,
                 board_id,
-                difficulty: GameDifficulty::Beginner.into(),
+                difficulty: difficulty.into(),
                 width,
                 height,
                 num_mines: mines,
-                num_closed: (width * height).into(),
+                num_closed: wh,
                 is_over: false,
                 time_elapsed: 0,
                 // total_currency_available: 0,
