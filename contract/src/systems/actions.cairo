@@ -172,18 +172,14 @@ pub mod actions {
             
             if difficulty.into() == 1 {
                 let enumDifficulty: GameDifficulty = GameDifficulty::Beginner;
-                print!("SSAA");
                 assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
             } else if difficulty.into() == 2 {
-                print!("SSAA2");
                 let enumDifficulty: GameDifficulty = GameDifficulty::Intermediate;
                 assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
             } else if difficulty.into() == 3 {
-                print!("SSAA3");
                 let enumDifficulty: GameDifficulty = GameDifficulty::Expert;
                 assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
             }
-            print!("SHYQTY");
             // assert!(board_id == self.setup_board_status(enumDifficulty, board_id), "Error setting up board status");
             
             assert!(board_id == self.setup_cells(board_id), "Error setting up cells");
@@ -210,7 +206,7 @@ pub mod actions {
             let w: u16 = width.into();
             let h: u16 = height.into();
             let wh: u16 = w * h;
-            
+
             let board = BoardStatus {
                 player,
                 board_id,
