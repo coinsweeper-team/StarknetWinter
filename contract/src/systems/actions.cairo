@@ -166,6 +166,14 @@ pub mod actions {
 
         fn setup_game(ref self: ContractState, difficulty: u8) -> u32 {
             let mut world = self.world_default();
+            let player = get_caller_address();
+            let boardsInit = Boards {
+                player,
+                last_board_id: 0,
+                played_total: 0,
+                won_total: 0,
+            };
+            world.write_model(@boardsInit);
             let mut boards: Boards = world.read_model(get_caller_address());
             
             let board_id: u32 = boards.last_board_id + 1;

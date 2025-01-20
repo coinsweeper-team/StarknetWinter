@@ -169,6 +169,7 @@ const App = () => {
 
     if (cell.isBee) {
       //marat sound added
+      playSound(bombSound);
       stopDrumSound();
 
       setGameOver(true);
